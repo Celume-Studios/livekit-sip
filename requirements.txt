@@ -1,0 +1,8 @@
+
+livekit
+flask
+python-dotenv
+yaml
+pydantic
+psutil
+requests 

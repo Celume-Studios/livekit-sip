@@ -1,0 +1,9 @@
+{
+    "trunk": {
+      "name": "My outbound trunk",
+      "address": "192.168.0.105",
+      "numbers": ["+19405388351"],
+      "auth_username": "admin",
+      "auth_password": "Owner_admin123"
+    }
+  }
