@@ -4,9 +4,6 @@ import threading
 
 app = Flask(__name__)
 
-# Keep track of rooms already handled (optional, for idempotency)
-handled_rooms = set()
-
 def launch_agent(room_name):
     # Launch restaurant_agent.py with the room name as an argument
     subprocess.Popen(['python', 'restaurant_agent.py', '--room', room_name])
@@ -20,12 +17,8 @@ def webhook():
     room_name = room.get('name', '')
 
     if event == 'room_started' and room_name.startswith('call-'):
-        if room_name not in handled_rooms:
-            handled_rooms.add(room_name)
-            threading.Thread(target=launch_agent, args=(room_name,)).start()
-            print(f"Triggered agent for room: {room_name}")
-        else:
-            print(f"Room {room_name} already handled.")
+        threading.Thread(target=launch_agent, args=(room_name,)).start()
+        print(f"Triggered agent for room: {room_name}")
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':

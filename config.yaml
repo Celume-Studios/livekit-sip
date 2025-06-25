@@ -21,6 +21,6 @@ redis:
 keys:
   9b5ed4546d7c0e20aeb5f4135dfd5395: RSDwPm85rKe2sGt4RMsGNyRQjnvDeBgpkVjT/qOEaoc=
 
-  webhook_api:
-    urls:
-      - http://host.docker.internal:5005/webhook
+webhook_api:
+  urls:
+    - http://host.docker.internal:5005/webhook
