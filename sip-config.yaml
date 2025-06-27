@@ -1,9 +1,9 @@
-api_key: 9b5ed4546d7c0e20aeb5f4135dfd5395
-api_secret: RSDwPm85rKe2sGt4RMsGNyRQjnvDeBgpkVjT/qOEaoc=
-ws_url: ws://192.168.0.110:7880
+api_key: 262b36c27ecf06c541e4bfa1429f8015
+api_secret: v7omktmZC+xmQjPmchhEbWKFPyf9ZQa7IVo6xXjb4cs=
+ws_url: ws://192.168.0.115:7880
 redis:
   address: redis:6379
-sip_port: 15060
+sip_port: 5060
 rtp_port: 10000-11000
 use_external_ip: true
 logging:

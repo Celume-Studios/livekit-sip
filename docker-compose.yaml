@@ -19,8 +19,8 @@ services:
   sip-server:
     image: livekit/sip:latest
     ports:
-      - "15060:15060/udp"
-      - "15060:15060/tcp"
+      - "5060:5060/udp"
+      - "5060:5060/tcp"
       - "10000-11000:10000-11000/udp"
     volumes:
       - ./sip-config.yaml:/sip/config.yaml
