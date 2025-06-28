@@ -3,7 +3,6 @@ port: 7880
 log_level: debug
 
 rtc:
-
   tcp_port: 7881
 
   port_range_start: 50000
@@ -15,8 +14,10 @@ rtc:
   node_ip: "192.168.0.110"
 
 redis:
-
   address: redis:6379
 
 keys:
-  262b36c27ecf06c541e4bfa1429f8015: v7omktmZC+xmQjPmchhEbWKFPyf9ZQa7IVo6xXjb4cs=
+  2cc2651675eaa276761927f0379145f4: WXyAxF8PpnjcjCK6PIZ41Srs8aQ5cLB/vmDOrAPX5eA=
+  api_key: 24169b3cb938e297d86ef85e069de73c
+  urls:
+    - "http://host.docker.internal:5005/webhook"

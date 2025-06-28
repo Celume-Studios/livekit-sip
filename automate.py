@@ -131,12 +131,49 @@ def update_yaml_files(api_key, api_secret, ip_address):
             
             # Special case for config.yaml
             if yaml_file == "config.yaml":
+                # Update keys section
                 content = re.sub(
                     r'keys:\n(?:\s+[a-zA-Z0-9]+:.*\n?)+',
                     f'keys:\n  {api_key}: {api_secret}\n',
                     content,
                     flags=re.MULTILINE
                 )
+                
+                # Update webhook section with new API key and secret
+                # First, check if webhook section exists
+                if 'webhook:' in content:
+                    # If webhook section exists, update or add API key and secret
+                    webhook_api_key_match = re.search(r'api_key:\s*[\'"]?[^\'"]+[\'"]?', content)
+                    webhook_api_secret_match = re.search(r'api_secret:\s*[\'"]?[^\'"]+[\'"]?', content)
+                    
+                    if webhook_api_key_match:
+                        content = re.sub(
+                            r'api_key:\s*[\'"]?[^\'"]+[\'"]?',
+                            f'api_key: {api_key}',
+                            content
+                        )
+                    else:
+                        # If api_key doesn't exist, add it under webhook section
+                        content = re.sub(
+                            r'(webhook:\n\s*urls:\n(?:\s*- "[^"]+"\n?)+)',
+                            r'\1  api_key: ' + api_key + '\n',
+                            content
+                        )
+                    
+                    if webhook_api_secret_match:
+                        content = re.sub(
+                            r'api_secret:\s*[\'"]?[^\'"]+[\'"]?',
+                            f'api_secret: {api_secret}',
+                            content
+                        )
+                    else:
+                        # If api_secret doesn't exist, add it under webhook section
+                        content = re.sub(
+                            r'(webhook:\n\s*urls:\n(?:\s*- "[^"]+"\n?)+(?:\s*api_key:[^\n]+\n)?)',
+                            r'\1  api_secret: ' + api_secret + '\n',
+                            content
+                        )
+            
             # Special case for sip-config.yaml
             elif yaml_file == "sip-config.yaml":
                 content = re.sub(
@@ -196,6 +233,26 @@ def update_yaml_files(api_key, api_secret, ip_address):
                 content = re.sub(
                     r'url:\s*.*',
                     f'url: ws://{ip_address}:7880',
+                    content
+                )
+            
+            # Special case for docker-compose.yaml
+            if yaml_file == "docker-compose.yaml":
+                # Replace API key and secret in the SIP_CONFIG_BODY environment variable
+                content = re.sub(
+                    r'api_key:\s*\'[^\']*\'',
+                    f'api_key: \'{api_key}\'',
+                    content
+                )
+                content = re.sub(
+                    r'api_secret:\s*\'[^\']*\'',
+                    f'api_secret: \'{api_secret}\'',
+                    content
+                )
+                # Update ws_url with IP address
+                content = re.sub(
+                    r'ws_url:\s*\'[^\']*\'',
+                    f'ws_url: \'ws://{ip_address}:7880\'',
                     content
                 )
             
