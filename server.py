@@ -14,7 +14,7 @@ def getToken():
     .with_name("call-my name") \
     .with_grants(api.VideoGrants(
         room_join=True,
-        room="call-room",
+        room="room-test-5",
     ))
   return token.to_jwt()
 
