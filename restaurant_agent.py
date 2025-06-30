@@ -329,7 +329,7 @@ class Checkout(BaseAgent):
         return await self._transfer_to_agent("takeaway", context)
 
 
-async def entrypoint(ctx: JobContext, room_name: str = None):
+async def entrypoint(ctx: JobContext):
     # Don't try to modify ctx.room.name - it's read-only
     # The room name is handled by the CLI framework
     
@@ -394,27 +394,39 @@ async def entrypoint(ctx: JobContext, room_name: str = None):
 # 2. Fix the main section to properly handle CLI arguments
 if __name__ == "__main__":
     import argparse
-    
-    # Create custom argument parser
-    parser = argparse.ArgumentParser(description='Restaurant Agent')
-    parser.add_argument('--room', type=str, help='Room name to join')
-    parser.add_argument('command', nargs='?', default='start', help='Command to run')
-    
-    # Parse known args to avoid conflicts with LiveKit CLI
-    args, unknown = parser.parse_known_args()
-    
-    room_name = args.room if args.room else None
-    print(f"Starting restaurant agent for room: {room_name}")
-    
-    # Set up worker options with room name
     worker_options = WorkerOptions(
         entrypoint_fnc=entrypoint,
-        agent_name="restaurant_agent",  # Important: set agent name
+        agent_name="restaurant_agent",  # This is crucial for dispatch to work
     )
     
-    # If room name is provided, add it to the worker options
-    if room_name:
-        worker_options.room_name = room_name
+    print("Starting restaurant agent worker...")
+    print("Agent name: restaurant_agent")
+    print("Waiting for dispatch requests...")
     
-    # Run the agent
+    # Run the agent worker - it will wait for dispatch requests
     cli.run_app(worker_options)
+
+    
+    # Create custom argument parser
+    # parser = argparse.ArgumentParser(description='Restaurant Agent')
+    # parser.add_argument('--room', type=str, help='Room name to join')
+    # parser.add_argument('command', nargs='?', default='start', help='Command to run')
+    
+    # # Parse known args to avoid conflicts with LiveKit CLI
+    # args, unknown = parser.parse_known_args()
+    
+    # room_name = args.room if args.room else None
+    # print(f"Starting restaurant agent for room: {room_name}")
+    
+    # # Set up worker options with room name
+    # worker_options = WorkerOptions(
+    #     entrypoint_fnc=entrypoint,
+    #     agent_name="restaurant_agent",  # Important: set agent name
+    # )
+    
+    # # If room name is provided, add it to the worker options
+    # if room_name:
+    #     worker_options.room_name = room_name
+    
+    # # Run the agent
+    # cli.run_app(worker_options)
