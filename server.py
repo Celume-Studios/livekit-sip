@@ -11,10 +11,10 @@ app = Flask(__name__)
 def getToken():
   token = api.AccessToken(os.getenv('LIVEKIT_API_KEY'), os.getenv('LIVEKIT_API_SECRET')) \
     .with_identity("identity") \
-    .with_name("my name") \
+    .with_name("call-my name") \
     .with_grants(api.VideoGrants(
         room_join=True,
-        room="my-room",
+        room="call-room",
     ))
   return token.to_jwt()
 

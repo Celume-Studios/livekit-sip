@@ -138,52 +138,64 @@ def update_yaml_files(api_key, api_secret, ip_address):
                     content,
                     flags=re.MULTILINE
                 )
-                
-                # Update webhook section with new API key and secret
-                # First, check if webhook section exists
+                # Update webhook section with new API key only (remove api_secret if present)
                 if 'webhook:' in content:
-                    # If webhook section exists, update or add API key and secret
+                    # Remove api_secret if present
+                    content = re.sub(
+                        r'\n\s*api_secret:.*',
+                        '',
+                        content
+                    )
+                    # Update API key if it exists, otherwise add it
                     webhook_api_key_match = re.search(r'api_key:\s*[\'"]?[^\'"]+[\'"]?', content)
-                    webhook_api_secret_match = re.search(r'api_secret:\s*[\'"]?[^\'"]+[\'"]?', content)
-                    
                     if webhook_api_key_match:
                         content = re.sub(
                             r'api_key:\s*[\'"]?[^\'"]+[\'"]?',
-                            f'api_key: {api_key}',
+                            f"api_key: {api_key}",
                             content
                         )
                     else:
                         # If api_key doesn't exist, add it under webhook section
                         content = re.sub(
-                            r'(webhook:\n\s*urls:\n(?:\s*- "[^"]+"\n?)+)',
-                            r'\1  api_key: ' + api_key + '\n',
+                            r'(webhook:\n)',
+                            r'\g<1>  api_key: {}\n'.format(api_key),
                             content
                         )
-                    
-                    if webhook_api_secret_match:
+                    # Ensure webhook URLs exist with the correct IP address
+                    if 'urls:' not in content:
+                        # Add urls section if it doesn't exist
                         content = re.sub(
-                            r'api_secret:\s*[\'"]?[^\'"]+[\'"]?',
-                            f'api_secret: {api_secret}',
+                            r'(webhook:\n(?:\s*api_key:[^\n]+\n)?)',
+                            r'\g<1>  urls:\n    - http://{}:5005/webhook\n'.format(ip_address),
                             content
                         )
                     else:
-                        # If api_secret doesn't exist, add it under webhook section
+                        # Update existing URLs with new IP address
                         content = re.sub(
-                            r'(webhook:\n\s*urls:\n(?:\s*- "[^"]+"\n?)+(?:\s*api_key:[^\n]+\n)?)',
-                            r'\1  api_secret: ' + api_secret + '\n',
+                            r'(\s*- "http://)[^"]+(:5005/webhook")',
+                            r'\g<1>' + ip_address + r'\g<2>',
                             content
                         )
+                else:
+                    # If webhook section doesn't exist, create it with only api_key
+                    content += f'''\nwebhook:\n  api_key: {api_key}\n  urls:\n    - http://{ip_address}:5005/webhook\n'''
             
             # Special case for sip-config.yaml
             elif yaml_file == "sip-config.yaml":
+                # Always update api_key, api_secret, ws_url as single-quoted (even if commented)
                 content = re.sub(
-                    r'api_key:.*',
-                    f'api_key: {api_key}',
+                    r'(#?\s*api_key:)\s*[\'\"]?[^\'\"]*[\'\"]?',
+                    f"api_key: '{api_key}'",
                     content
                 )
                 content = re.sub(
-                    r'api_secret:.*',
-                    f'api_secret: {api_secret}',
+                    r'(#?\s*api_secret:)\s*[\'\"]?[^\'\"]*[\'\"]?',
+                    f"api_secret: '{api_secret}'",
+                    content
+                )
+                content = re.sub(
+                    r'(#?\s*ws_url:)\s*[\'\"]?[^\'\"]*[\'\"]?',
+                    f"ws_url: 'ws://{ip_address}:7880'",
                     content
                 )
             else:
@@ -223,38 +235,47 @@ def update_yaml_files(api_key, api_secret, ip_address):
             
             # Update ws_url or url with IP address for config.yaml and sip-config.yaml
             if yaml_file in ["config.yaml", "sip-config.yaml"]:
-                # Replace ws_url: ...
+                # Replace ws_url: ... with single quotes
                 content = re.sub(
                     r'ws_url:\s*.*',
-                    f'ws_url: ws://{ip_address}:7880',
+                    f"ws_url: 'ws://{ip_address}:7880'",
                     content
                 )
                 # Replace url: ...
                 content = re.sub(
                     r'url:\s*.*',
-                    f'url: ws://{ip_address}:7880',
+                    f"url: ws://{ip_address}:7880",
                     content
                 )
             
             # Special case for docker-compose.yaml
             if yaml_file == "docker-compose.yaml":
-                # Replace API key and secret in the SIP_CONFIG_BODY environment variable
-                content = re.sub(
-                    r'api_key:\s*\'[^\']*\'',
-                    f'api_key: \'{api_key}\'',
-                    content
-                )
-                content = re.sub(
-                    r'api_secret:\s*\'[^\']*\'',
-                    f'api_secret: \'{api_secret}\'',
-                    content
-                )
-                # Update ws_url with IP address
-                content = re.sub(
-                    r'ws_url:\s*\'[^\']*\'',
-                    f'ws_url: \'ws://{ip_address}:7880\'',
-                    content
-                )
+                # Ensure api_key, api_secret, ws_url are present and single-quoted at the top of SIP_CONFIG_BODY
+                sip_config_match = re.search(r'(SIP_CONFIG_BODY:\s*\|\n)([\s\S]+?)(?=^\S|\Z)', content, re.MULTILINE)
+                if sip_config_match:
+                    header = sip_config_match.group(1)
+                    body = sip_config_match.group(2)
+                    # Remove any existing api_key/api_secret/ws_url lines (only at the top, before the first non-matching field)
+                    lines = body.splitlines(keepends=True)
+                    i = 0
+                    while i < len(lines):
+                        line = lines[i]
+                        if re.match(r"^\s*api_key:", line) or re.match(r"^\s*api_secret:", line) or re.match(r"^\s*ws_url:", line):
+                            i += 1
+                            continue
+                        break
+                    # Now, insert the three fields at the top in order, with correct indentation (4 spaces)
+                    top = [
+                        f"        api_key: '{api_key}'\n",
+                        f"        api_secret: '{api_secret}'\n",
+                        f"        ws_url: 'ws://{ip_address}:7880'\n"
+                    ]
+                    # Add the rest of the lines (starting from i)
+                    new_body = ''.join(top + lines[i:])
+                    content = content[:sip_config_match.start(1)] + header + new_body + content[sip_config_match.end(2):]
+                else:
+                    # fallback: just add at the top of the file (shouldn't happen)
+                    content = f"SIP_CONFIG_BODY: |\n          \t\tapi_key: '{api_key}'\n          \t\tapi_secret: '{api_secret}'\n            \t\tws_url: 'ws://{ip_address}:7880'\n" + content
             
             with open(yaml_file, 'w') as f:
                 f.write(content)
@@ -462,7 +483,18 @@ def main():
     if not run_docker_compose("up -d"):
         print("❌ Failed to start Docker containers")
         return
-    
+
+    # # Step 8: Ensure webhook_listener.py is running
+    # print("🔍 Checking for existing webhook_listener.py processes on port 5005...")
+    # # Kill any process using port 5005 (webhook_listener)
+    # kill_processes_on_ports([5005])
+    # time.sleep(1)
+    # print("🚦 Starting webhook_listener.py...")
+    # subprocess.Popen([sys.executable, "webhook_listener.py"],
+    #                  stdout=subprocess.DEVNULL,
+    #                  stderr=subprocess.DEVNULL)
+    # print("✅ webhook_listener.py started on port 5005!")
+
     print("🎉 Automation completed successfully!")
     print(f"🌐 LiveKit URL: ws://{ip_address}:7880")
 

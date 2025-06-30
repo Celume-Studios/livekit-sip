@@ -17,7 +17,8 @@ redis:
   address: redis:6379
 
 keys:
-  2cc2651675eaa276761927f0379145f4: WXyAxF8PpnjcjCK6PIZ41Srs8aQ5cLB/vmDOrAPX5eA=
-  api_key: 24169b3cb938e297d86ef85e069de73c
+  e476ff57b4ec0ceeb83f957fce325109: nI4PoqG26z+T5vtKyB8Mc4UKEgbsiC/OE8fvQGXOTE8=
+webhook:
   urls:
-    - "http://host.docker.internal:5005/webhook"
+    - http://192.168.0.114:5005/webhook
+  api_key: e476ff57b4ec0ceeb83f957fce325109

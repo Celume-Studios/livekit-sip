@@ -131,7 +131,7 @@ async def disconnect_call(context: RunContext_T) -> str:
     sys.stdout.flush()
     import os
     os._exit(0)
-    return "Call disconnected."
+    
 
 
 class BaseAgent(Agent):
@@ -329,7 +329,11 @@ class Checkout(BaseAgent):
         return await self._transfer_to_agent("takeaway", context)
 
 
-async def entrypoint(ctx: JobContext):
+async def entrypoint(ctx: JobContext, room_name: str = None):
+    # Don't try to modify ctx.room.name - it's read-only
+    # The room name is handled by the CLI framework
+    
+    print(f"Agent starting for room: {ctx.room.name}")
     await ctx.connect()
 
     menu = "Pizza: $10, Salad: $5, Ice Cream: $3, Coffee: $2"
@@ -349,8 +353,6 @@ async def entrypoint(ctx: JobContext):
         tts=cartesia.TTS(),
         vad=silero.VAD.load(),
         max_tool_steps=5,
-        # to use realtime model, replace the stt, llm, tts and vad with the following
-        # llm=openai.realtime.RealtimeModel(voice="alloy"),
     )
 
     # Print both user and agent transcripts as they are added
@@ -372,38 +374,47 @@ async def entrypoint(ctx: JobContext):
                     "role": getattr(item, 'role', None),
                     "text": getattr(item, 'text_content', "")
                 })
-        # Print as JSON
         import json
         print("\nFull transcript (JSON):")
         print(json.dumps({"transcript": transcript}, indent=2, ensure_ascii=False))
-        # Print as user-agent conversation
         print("\nFull transcript (conversation):")
         for turn in transcript:
             if turn["role"] == "user":
                 print(f"User: {turn['text']}")
             elif turn["role"] == "assistant":
                 print(f"Agent: {turn['text']}")
-            
-        
     session.on("close", on_close)
 
     await session.start(
         agent=userdata.agents["greeter"],
         room=ctx.room,
-        room_input_options=RoomInputOptions(
-            # noise_cancellation=noise_cancellation.BVC(),
-        ),
+        room_input_options=RoomInputOptions(),
     )
 
-    # await agent.say("Welcome to our restaurant! How may I assist you today?")
-
-
+# 2. Fix the main section to properly handle CLI arguments
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    import argparse
+    
+    # Create custom argument parser
+    parser = argparse.ArgumentParser(description='Restaurant Agent')
     parser.add_argument('--room', type=str, help='Room name to join')
-    args = parser.parse_args()
-
-    room_name = args.room if args.room else 'default-room'
-    # Use room_name in your join logic
-
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    parser.add_argument('command', nargs='?', default='start', help='Command to run')
+    
+    # Parse known args to avoid conflicts with LiveKit CLI
+    args, unknown = parser.parse_known_args()
+    
+    room_name = args.room if args.room else None
+    print(f"Starting restaurant agent for room: {room_name}")
+    
+    # Set up worker options with room name
+    worker_options = WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        agent_name="restaurant_agent",  # Important: set agent name
+    )
+    
+    # If room name is provided, add it to the worker options
+    if room_name:
+        worker_options.room_name = room_name
+    
+    # Run the agent
+    cli.run_app(worker_options)
