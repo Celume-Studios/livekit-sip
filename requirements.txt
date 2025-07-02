@@ -1,7 +1,7 @@
 livekit
 flask
 python-dotenv
-yaml
+pyyaml
 pydantic
 psutil
 requests 
