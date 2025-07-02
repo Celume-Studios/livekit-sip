@@ -17,8 +17,8 @@ redis:
   address: redis:6379
 
 keys:
-  8aff81a094e2ccfc22c464273b895f3d: aHPgX+N5aiQgN8Oqe+d6PzdO409ZasLUfRgYvX+kfJk=
+  ba8c728b319751d43492af0887d0a240: IysYuM2X3CIgeMn6efTAhFn38yggopg2CGa+J6NUcKo=
 webhook:
   urls:
     - http://192.168.0.114:5005/webhook
-  api_key: 8aff81a094e2ccfc22c464273b895f3d
+  api_key: ba8c728b319751d43492af0887d0a240

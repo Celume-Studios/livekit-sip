@@ -92,6 +92,7 @@ def send_realtime_update(userdata, transcript, success=None, user_id=None):
         "expense": userdata.expense,
         "checked_out": userdata.checked_out,
     }
+    # transcript is now a string in the requested format
     log_to_google_sheet(
         user_id=uid,
         user_details=user_details,
@@ -113,12 +114,8 @@ async def update_name(
     name: Annotated[str, Field(description="The customer's name")],
     context: RunContext_T,
 ) -> str:
-    """Called when the user provides their name.
-    Confirm the spelling with the user before calling the function."""
     userdata = context.userdata
     userdata.customer_name = name
-    # Send update
-    send_realtime_update(userdata, f"Name updated to {name}")
     return f"The name is updated to {name}"
 
 
@@ -127,11 +124,8 @@ async def update_phone(
     phone: Annotated[str, Field(description="The customer's phone number")],
     context: RunContext_T,
 ) -> str:
-    """Called when the user provides their phone number.
-    Confirm the spelling with the user before calling the function."""
     userdata = context.userdata
     userdata.customer_phone = phone
-    send_realtime_update(userdata, f"Phone updated to {phone}")
     return f"The phone number is updated to {phone}"
 
 
@@ -145,31 +139,23 @@ async def to_greeter(context: RunContext_T) -> Agent:
 
 @function_tool()
 async def disconnect_call(context: RunContext_T) -> str:
-    """Called when the user wants to disconnect or end the call. Say goodbye, print transcript, and exit."""
     await context.session.say("Thank you for calling. Goodbye!")
-    # Print transcript synchronously and exit
     session = context.session
     transcript = []
     for item in session.history.items:
         if getattr(item, 'type', None) == "message":
-            transcript.append({
-                "role": getattr(item, 'role', None),
-                "text": getattr(item, 'text_content', "")
-            })
+            if getattr(item, 'role', None) == "user":
+                transcript.append(f"User: {getattr(item, 'text_content', '').strip()}")
+            elif getattr(item, 'role', None) == "assistant":
+                transcript.append(f"Agent: {getattr(item, 'text_content', '').strip()}")
+    transcript_str = "\n".join(transcript)
     import json, sys
-    print("\nFull transcript (JSON):")
-    print(json.dumps({"transcript": transcript}, indent=2, ensure_ascii=False))
     print("\nFull transcript (conversation):")
-    for turn in transcript:
-        if turn["role"] == "user":
-            print(f"User: {turn['text']}")
-        elif turn["role"] == "assistant":
-            print(f"Agent: {turn['text']}")
+    print(transcript_str)
     sys.stdout.flush()
-    # Send final update with transcript and success
     userdata = context.userdata
     success = evaluate_success(userdata)
-    send_realtime_update(userdata, transcript, success=success)
+    send_realtime_update(userdata, transcript_str, success=success)
     import os
     os._exit(0)
     
@@ -255,11 +241,8 @@ class Reservation(BaseAgent):
         time: Annotated[str, Field(description="The reservation time")],
         context: RunContext_T,
     ) -> str:
-        """Called when the user provides their reservation time.
-        Confirm the time with the user before calling the function."""
         userdata = context.userdata
         userdata.reservation_time = time
-        send_realtime_update(userdata, f"Reservation time updated to {time}")
         return f"The reservation time is updated to {time}"
 
     @function_tool()
@@ -293,10 +276,8 @@ class Takeaway(BaseAgent):
         items: Annotated[list[str], Field(description="The items of the full order")],
         context: RunContext_T,
     ) -> str:
-        """Called when the user create or update their order."""
         userdata = context.userdata
         userdata.order = items
-        send_realtime_update(userdata, f"Order updated to {items}")
         return f"The order is updated to {items}"
 
     @function_tool()
@@ -328,10 +309,8 @@ class Checkout(BaseAgent):
         expense: Annotated[float, Field(description="The expense of the order")],
         context: RunContext_T,
     ) -> str:
-        """Called when the user confirms the expense."""
         userdata = context.userdata
         userdata.expense = expense
-        send_realtime_update(userdata, f"Expense confirmed: {expense}")
         return f"The expense is confirmed to be {expense}"
 
     @function_tool()
@@ -342,13 +321,10 @@ class Checkout(BaseAgent):
         cvv: Annotated[str, Field(description="The CVV of the credit card")],
         context: RunContext_T,
     ) -> str:
-        """Called when the user provides their credit card number, expiry date, and CVV.
-        Confirm the spelling with the user before calling the function."""
         userdata = context.userdata
         userdata.customer_credit_card = number
         userdata.customer_credit_card_expiry = expiry
         userdata.customer_credit_card_cvv = cvv
-        send_realtime_update(userdata, f"Credit card updated: {number}")
         return f"The credit card number is updated to {number}"
 
     @function_tool()
@@ -415,22 +391,15 @@ async def entrypoint(ctx: JobContext):
         transcript = []
         for item in session.history.items:
             if getattr(item, 'type', None) == "message":
-                transcript.append({
-                    "role": getattr(item, 'role', None),
-                    "text": getattr(item, 'text_content', "")
-                })
-        import json
-        print("\nFull transcript (JSON):")
-        print(json.dumps({"transcript": transcript}, indent=2, ensure_ascii=False))
+                if getattr(item, 'role', None) == "user":
+                    transcript.append(f"User: {getattr(item, 'text_content', '').strip()}")
+                elif getattr(item, 'role', None) == "assistant":
+                    transcript.append(f"Agent: {getattr(item, 'text_content', '').strip()}")
+        transcript_str = "\n".join(transcript)
         print("\nFull transcript (conversation):")
-        for turn in transcript:
-            if turn["role"] == "user":
-                print(f"User: {turn['text']}")
-            elif turn["role"] == "assistant":
-                print(f"Agent: {turn['text']}")
-        # Send final update with transcript and success
+        print(transcript_str)
         success = evaluate_success(session.userdata)
-        send_realtime_update(session.userdata, transcript, success=success)
+        send_realtime_update(session.userdata, transcript_str, success=success)
     session.on("close", on_close)
 
     # In entrypoint, try to get user_id from ctx.room or ctx.participant

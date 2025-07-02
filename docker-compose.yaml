@@ -28,8 +28,8 @@ services:
       - "10000-11000:10000-11000/udp"
     environment:
       SIP_CONFIG_BODY: |
-        api_key: '8aff81a094e2ccfc22c464273b895f3d'
-        api_secret: 'aHPgX+N5aiQgN8Oqe+d6PzdO409ZasLUfRgYvX+kfJk='
+        api_key: 'ba8c728b319751d43492af0887d0a240'
+        api_secret: 'IysYuM2X3CIgeMn6efTAhFn38yggopg2CGa+J6NUcKo='
         ws_url: 'ws://192.168.0.114:7880'
         redis:
           address: redis:6379

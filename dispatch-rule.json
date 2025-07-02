@@ -3,5 +3,10 @@
       "dispatchRuleIndividual": {
         "roomPrefix": "call-"
       }
+    },
+    "roomConfig": {
+        "agents": [{
+            "agentName": "restaurant_agent"
+        }]
     }
   }
